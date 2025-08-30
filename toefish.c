@@ -3,17 +3,20 @@
 #include <cjson/cJSON.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <time.h>
 #include <errno.h>
 char board_state[MB1] = "";
-int numbers[8];//numbers for tiles
-char symbols[8]; //data in tiles
-void process(char *board_state);
+int numbers[9];//numbers for tiles
+char symbols[9]; //data in tiles
+bool is_terminal(char *parsed_board_state);
+char *minimax(char *parsed_board_state);
+void parse(char *board_state);
 
 void output(char *symbols, clock_t start){
 
-   for (int i = 0; i < 8; i++) {
-       printf("%c ", symbols[i]);
+   for (int i = 0; i < 9; i++) {
+       printf("%d : %c ",i, symbols[i]);
    }
    printf("\n");
    clock_t end = clock();
@@ -24,10 +27,10 @@ void output(char *symbols, clock_t start){
 int main(int argc, char *argv[]) {
    
    clock_t start = clock();
-   /*if (argc < 2) {
+   if (argc < 2) {
       fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
       return 1;
-   }*/
+   }
 
    FILE *fp = fopen(argv[1], "rb");
    if (!fp) {
@@ -62,32 +65,78 @@ int main(int argc, char *argv[]) {
 
    strcpy(board_state, buffer);
    free(buffer);
-   process(board_state);
+   parse(board_state);
    output(symbols, start);
    fclose(fp);
-
+   //JSON is parsed correctly, time for the minimax algorithm
+   char *result = minimax(symbols);
+   printf("Minimax result: %s\n", result);
    return 0;
 }
- void process(char *board_state) {
+ void parse(char *board_state) {
     cJSON *json = cJSON_Parse(board_state);
     if (!json) {
         fprintf(stderr, "Error parsing JSON\n");
-        
+        return;
     }
-
-    
-    
-    int count = 0;
-
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 9; i++) {
         char key[2];
         snprintf(key, sizeof(key), "%d", i);
         cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key);
         if (cJSON_IsString(item) && (item->valuestring != NULL)) {
-            numbers[count] = i;
-            symbols[count] = item->valuestring[0]; 
-            count++;
+            numbers[i] = i;
+            symbols[i] = item->valuestring[0]; 
+        } else {
+            fprintf(stderr, "Error: Invalid JSON format at key %d\n", i);
+            symbols[i] = '_'; // fallback
         }
     }
     cJSON_Delete(json);
+
+}
+
+char *minimax(char *parsed_board_state){
+   //terminal-state check
+   char *new_board_state = NULL;
+   if(is_terminal(parsed_board_state)){
+      printf("TERMINAL STATE REACHED\n");
+      return parsed_board_state;
+   }
+}
+bool is_terminal(char *parsed_board_state){
+   //check for win/loss
+   int winning_pos[8][3] = {//yes i hard-coded every winning position and i know its bad but whatever
+       {0, 1, 2}, 
+       {3, 4, 5}, 
+       {6, 7, 8}, 
+       {0, 3, 6}, 
+       {1, 4, 7}, 
+       {2, 5, 8}, 
+       {0, 4, 8}, 
+       {2, 4, 6}  
+   };
+   if(!strchr(parsed_board_state, '_')){//check for draw
+         printf("DRAW\n");
+         return true;
+   }
+   for(int i=0; i<8;i++){
+      if(parsed_board_state[winning_pos[i][0]]==parsed_board_state[winning_pos[i][1]]&&parsed_board_state[winning_pos[i][1]]==parsed_board_state[winning_pos[i][2]]){//yes i know my eyes hurt seeing this but i dont think theres a better way
+
+         switch(parsed_board_state[winning_pos[i][1]]){
+            case 'X':
+               printf("X WINS\n");
+               return true;
+            case 'O'://AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHHHH NESTING IM SO SORRY FOR THE ONE READING THIS
+               printf("O WINS\n");
+               return true;
+            default:
+               break;
+            
+
+         }
+      }
+
+   }
+
+   return false;
 }
