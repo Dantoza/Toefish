@@ -7,7 +7,7 @@
 #include <time.h>
 #include <errno.h>
 char board_state[MB1] = "";
-int numbers[9];//numbers for tiles
+
 char symbols[9]; //data in tiles
 bool is_terminal(char *parsed_board_state);
 char *minimax(char *parsed_board_state);
@@ -66,11 +66,12 @@ int main(int argc, char *argv[]) {
    strcpy(board_state, buffer);
    free(buffer);
    parse(board_state);
-   output(symbols, start);
+   
    fclose(fp);
    //JSON is parsed correctly, time for the minimax algorithm
    char *result = minimax(symbols);
    printf("Minimax result: %s\n", result);
+   output(symbols, start);
    return 0;
 }
  void parse(char *board_state) {
@@ -84,10 +85,10 @@ int main(int argc, char *argv[]) {
         snprintf(key, sizeof(key), "%d", i);
         cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key);
         if (cJSON_IsString(item) && (item->valuestring != NULL)) {
-            numbers[i] = i;
+           
             symbols[i] = item->valuestring[0]; 
         } else {
-            fprintf(stderr, "Error: Invalid JSON format at key %d\n", i);
+            fprintf(stderr, "Error: Invalid JSON format at key %d, using fallback value (empty tile)\n", i);
             symbols[i] = '_'; // fallback
         }
     }
@@ -103,40 +104,26 @@ char *minimax(char *parsed_board_state){
       return parsed_board_state;
    }
 }
-bool is_terminal(char *parsed_board_state){
-   //check for win/loss
-   int winning_pos[8][3] = {//yes i hard-coded every winning position and i know its bad but whatever
-       {0, 1, 2}, 
-       {3, 4, 5}, 
-       {6, 7, 8}, 
-       {0, 3, 6}, 
-       {1, 4, 7}, 
-       {2, 5, 8}, 
-       {0, 4, 8}, 
-       {2, 4, 6}  
-   };
-   if(!strchr(parsed_board_state, '_')){//check for draw
-         printf("DRAW\n");
-         return true;
-   }
-   for(int i=0; i<8;i++){
-      if(parsed_board_state[winning_pos[i][0]]==parsed_board_state[winning_pos[i][1]]&&parsed_board_state[winning_pos[i][1]]==parsed_board_state[winning_pos[i][2]]){//yes i know my eyes hurt seeing this but i dont think theres a better way
+bool is_terminal(char *parsed_board_state) {
+    static const int winning_pos[8][3] = {
+        {0, 1, 2}, {3, 4, 5}, {6, 7, 8},
+        {0, 3, 6}, {1, 4, 7}, {2, 5, 8},
+        {0, 4, 8}, {2, 4, 6}
+    };
 
-         switch(parsed_board_state[winning_pos[i][1]]){
-            case 'X':
-               printf("X WINS\n");
-               return true;
-            case 'O'://AAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHHHHHHHHH NESTING IM SO SORRY FOR THE ONE READING THIS
-               printf("O WINS\n");
-               return true;
-            default:
-               break;
-            
+    for (size_t i = 0; i < 8; i++) {
+        char s = parsed_board_state[winning_pos[i][0]];
+        if (s != '_' &&
+            s == parsed_board_state[winning_pos[i][1]] &&
+            s == parsed_board_state[winning_pos[i][2]]) {
+            printf("%c WINS\n", s);
+            return true;
+        }
+    }
 
-         }
-      }
-
-   }
-
-   return false;
+    if (!strchr(parsed_board_state, '_')) {
+        printf("DRAW\n");
+        return true;
+    }
+    return false;
 }
