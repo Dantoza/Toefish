@@ -7,11 +7,13 @@
 #include <time.h>
 #include <errno.h>
 char board_state[MB1] = "";
-char winner = ' ';
+char winner = ' ';//declares if x wins,o wins or its a draw(_)
+int move_count = 0;
 char symbols[9]; //data in tiles
-bool is_terminal(char *parsed_board_state);
-char *minimax(char *parsed_board_state, char current_player, int depth);
-void parse(char *board_state);
+bool is_terminal(char *parsed_board_state);//checks if the game is finished
+char *minimax(char *parsed_board_state, char current_player, int depth);//minimax algorithm
+void parse(char *board_state);//turns a json into an array
+char turn(char *parsed_board_state);//checks whose turn it is and the current move number
 
 void output(char *symbols, clock_t start){
 
@@ -23,16 +25,13 @@ void output(char *symbols, clock_t start){
    double cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
    printf("Execution time: %f seconds\n", cpu_time_used);
 }
-
 int main(int argc, char *argv[]) {
-   
    clock_t start = clock();
    if (argc < 2) {
       fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
       return 1;
    }
-
-   FILE *fp = fopen(argv[1], "rb");
+   FILE *fp = fopen(argv[1], "rb");//apparently rb and r work the same on linux but not on windows and rb is safer for cross-platform
    if (!fp) {
       perror("fopen");
       return 1;
@@ -60,16 +59,13 @@ int main(int argc, char *argv[]) {
       fclose(fp);
       return 1;
    }
-
    buffer[read_size] = '\0';// cuz counting starts at 0, i dont need to add read_size+1(off by one errors go brrrrrrrrrrrrrrrrrr)
-
    strcpy(board_state, buffer);
    free(buffer);
    parse(board_state);
-   
    fclose(fp);
    //JSON is parsed correctly, time for the minimax algorithm
-   char *result = minimax(symbols, 'X', 0);//for starters
+   char *result = minimax(symbols, turn(symbols), move_count);
    printf("Minimax result: %s\n", result);
    output(symbols, start);
    return 0;
@@ -100,9 +96,17 @@ char *minimax(char *parsed_board_state, char current_player, int depth) {
    //terminal-state check
    char *new_board_state = NULL;
    if(is_terminal(parsed_board_state)){
-      printf("TERMINAL STATE REACHED\n");
-      return parsed_board_state;
-   }
+    switch(winner)
+    {
+    case 'X':
+        break;
+    case 'O':
+        break;
+    case '_':
+        break;
+    }
+
+}
 }
 bool is_terminal(char *parsed_board_state) {
     static const int winning_pos[8][3] = {
@@ -123,8 +127,31 @@ bool is_terminal(char *parsed_board_state) {
     }
 
     if (!strchr(parsed_board_state, '_')) {
-        printf("DRAW\n");
+        winner='_';
         return true;
     }
     return false;
+}
+char turn(char *parsed_board_state) {
+    int x_count = 0;
+    int o_count = 0;
+    for (int i = 0; i < 9; i++) {
+        switch (parsed_board_state[i]) {
+            case 'X':
+            x_count++;
+            break;
+            case 'O':
+            o_count++;
+            break;
+            default:
+            break;
+        }
+
+    }
+    move_count = x_count + o_count;
+    if (x_count > o_count) {//yes here would be a good place to put a check if the board is valid but whatever ill do it later
+        return 'O';
+    } else {
+        return 'X';
+    }
 }
