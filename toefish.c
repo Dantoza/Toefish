@@ -7,10 +7,10 @@
 #include <time.h>
 #include <errno.h>
 char board_state[MB1] = "";
-
+char winner = ' ';
 char symbols[9]; //data in tiles
 bool is_terminal(char *parsed_board_state);
-char *minimax(char *parsed_board_state);
+char *minimax(char *parsed_board_state, char current_player, int depth);
 void parse(char *board_state);
 
 void output(char *symbols, clock_t start){
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
    
    fclose(fp);
    //JSON is parsed correctly, time for the minimax algorithm
-   char *result = minimax(symbols);
+   char *result = minimax(symbols, 'X', 0);//for starters
    printf("Minimax result: %s\n", result);
    output(symbols, start);
    return 0;
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
 
 }
 
-char *minimax(char *parsed_board_state){
+char *minimax(char *parsed_board_state, char current_player, int depth) {
    //terminal-state check
    char *new_board_state = NULL;
    if(is_terminal(parsed_board_state)){
@@ -106,9 +106,10 @@ char *minimax(char *parsed_board_state){
 }
 bool is_terminal(char *parsed_board_state) {
     static const int winning_pos[8][3] = {
-        {0, 1, 2}, {3, 4, 5}, {6, 7, 8},
-        {0, 3, 6}, {1, 4, 7}, {2, 5, 8},
-        {0, 4, 8}, {2, 4, 6}
+        {0, 1, 2}, {3, 4, 5}, {6, 7, 8},//rows
+        {0, 3, 6}, {1, 4, 7}, {2, 5, 8},//columns
+        {0, 4, 8}, {2, 4, 6} //diagonals
+        //its easier to hardcode these than to calculate all possible winning positions, also faster for the program not just for me
     };
 
     for (size_t i = 0; i < 8; i++) {
@@ -116,7 +117,7 @@ bool is_terminal(char *parsed_board_state) {
         if (s != '_' &&
             s == parsed_board_state[winning_pos[i][1]] &&
             s == parsed_board_state[winning_pos[i][2]]) {
-            printf("%c WINS\n", s);
+            winner = s;
             return true;
         }
     }
