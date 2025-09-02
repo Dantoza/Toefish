@@ -1,20 +1,20 @@
 #define MB1 1024*1024//cuz i cant put 1MB 
-#include <stdio.h>
-#include <cjson/cJSON.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <time.h>
-#include <errno.h>
-#include <stdint.h>
+#include <stdio.h>//standard input output
+#include <cjson/cJSON.h>//cJSON library for manipulating JSONs
+#include <stdlib.h>//standard C library(functions like malloc, free, printf,...)
+#include <string.h>//string manipulation
+#include <stdbool.h>//boolean type
+#include <time.h>//time manipulation
+#include <errno.h>//error handling
+#include <stdint.h>//fixed width integers for smaller memory footprint
 char board_state[MB1] = "";
 char winner = ' ';//declares if x wins,o wins or its a draw(_)
 uint8_t move_count = 0;//uses 8 bits to store the move count instead of default 32 bits
 char symbols[9]; //data in tiles
 bool is_terminal(char *parsed_board_state);//checks if the game is finished
-char *minimax(char *parsed_board_state, char current_player, int depth);//minimax algorithm
+int minimax(char *parsed_board_state, bool current_player, int depth);//minimax algorithm
 void parse(char *board_state);//turns a json into an array
-char turn(char *parsed_board_state);//checks whose turn it is and the current move number
+bool turn(char *parsed_board_state);//checks whose turn it is and the current move number
 
 void output(char *symbols, clock_t start){
 
@@ -55,8 +55,8 @@ int main(int argc, char *argv[]) {
    fclose(fp);//and since we count from 0 we can use that as a part of an array index(of by one error go brrrrrrrrrrrrrrrrr)
    parse(board_state);
    //JSON is parsed correctly, time for the minimax algorithm
-   char *result = minimax(symbols, turn(symbols), move_count);
-   printf("Minimax result: %s\n", result);
+   int result = minimax(symbols, turn(symbols), move_count);
+   printf("Minimax result: %d\n", result);
    output(symbols, start);
    return 0;
 }
@@ -82,26 +82,53 @@ int main(int argc, char *argv[]) {
 
 }
 
-char *minimax(char *parsed_board_state, char current_player, int depth) {
+int minimax(char *parsed_board_state, bool current_player, int depth) {//this is a minimax algorithm in c and can evaluate the board 
+                                                                        //(how many moves are left till the game ends)
    //terminal-state check
-   char *new_board_state = NULL;
+   
    if(is_terminal(parsed_board_state)){
     switch(winner)
     {
     case 'X':
-        return "X";
+        return 10-depth;
         break;
     case 'O':
-        return "O"; 
+        return depth-10;
         break;
     case '_':
-        return "_";
+        return 0;
         break;
+        }  
     }
-
+    switch (current_player) {
+        case true: {
+            int best_move = -11;
+            for (int i = 0; i < 9; i++) {
+                if (parsed_board_state[i] == '_') {
+                    parsed_board_state[i] = 'X';
+                    int score = minimax(parsed_board_state, false, depth + 1);//nesting hurts my eyes
+                    parsed_board_state[i] = '_'; 
+                    best_move = (score > best_move) ? score : best_move;
+                }
+            }
+            return best_move;
+        }
+        case false: {
+            
+            int best_move = 11;
+            for (int i = 0; i < 9; i++) {
+                if (parsed_board_state[i] == '_') {
+                    parsed_board_state[i] = 'O';
+                    int score = minimax(parsed_board_state, true, depth + 1);
+                    parsed_board_state[i] = '_';
+                    best_move = (score < best_move) ? score : best_move;
+                }
+            }
+            return best_move;
+        }
+    }
 }
-}
-bool is_terminal(char *parsed_board_state) {
+bool is_terminal(char *parsed_board_state) {//subfunc of minimax
     static const uint8_t winning_pos[8][3] = {
         {0, 1, 2}, {3, 4, 5}, {6, 7, 8},//rows
         {0, 3, 6}, {1, 4, 7}, {2, 5, 8},//columns
@@ -125,7 +152,7 @@ bool is_terminal(char *parsed_board_state) {
     }
     return false;
 }
-char turn(char *parsed_board_state) {
+bool turn(char *parsed_board_state) {//subfunc of minimax
     int x_count = 0;
     int o_count = 0;
     for (int i = 0; i < 9; i++) {
@@ -143,8 +170,8 @@ char turn(char *parsed_board_state) {
     }
     move_count = x_count + o_count;
     if (x_count > o_count) {//yes here would be a good place to put a check if the board is valid but whatever ill do it later
-        return 'O';
+        return false;
     } else {
-        return 'X';
+        return true;
     }
 }
