@@ -55,3 +55,5 @@ dkms.conf
 *.dwo
 #config files
 .vscode/
+#test version
+test_toefish.c

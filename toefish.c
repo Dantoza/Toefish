@@ -7,14 +7,18 @@
 #include <time.h>//time manipulation
 #include <errno.h>//error handling
 #include <stdint.h>//fixed width integers for smaller memory footprint
+#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) ((a) < (b) ? (a) : (b))//copied from stackoverflow
 char board_state[MB1] = "";
+uint8_t moves_count;
 char winner = ' ';//declares if x wins,o wins or its a draw(_)
-uint8_t move_count = 0;//uses 8 bits to store the move count instead of default 32 bits
+bool invalid_board = false;//self-explanatory
 char symbols[9]; //data in tiles
 bool is_terminal(char *parsed_board_state);//checks if the game is finished
 int minimax(char *parsed_board_state, bool current_player, int depth);//minimax algorithm
 void parse(char *board_state);//turns a json into an array
 bool turn(char *parsed_board_state);//checks whose turn it is and the current move number
+int next_move(char *parsed_board_state, bool current_player);
 
 void output(char *symbols, clock_t start){
 
@@ -23,16 +27,16 @@ void output(char *symbols, clock_t start){
    }
    printf("\n");
    clock_t end = clock();
-   double cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-   printf("Execution time: %f seconds\n", cpu_time_used);
+   double cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC*1000;
+   printf("Execution time: %f milliseconds\n", cpu_time_used);
 }
 int main(int argc, char *argv[]) {
    clock_t start = clock();
-   if (argc < 2) {
-      fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
+   if (argc != 3) {
+      fprintf(stderr, "Usage: %s <args> <file_path>\n", argv[0]);
       return 1;
    }
-   FILE *fp = fopen(argv[1], "rb");//apparently rb and r work the same on linux but not on windows and rb is safer for cross-platform
+   FILE *fp = fopen(argv[2], "rb");//apparently rb and r work the same on linux but not on windows and rb is safer for cross-platform
    if (!fp) {
       perror("fopen");
       return 1;
@@ -46,7 +50,7 @@ int main(int argc, char *argv[]) {
       return 1;
    }
    size_t read_size = fread(board_state, 1, MB1, fp);
-   if (read_size == 0 && ferror(fp)) {
+   if (read_size == 0 || ferror(fp)) {
       perror("fread");
       fclose(fp);
       return 1;
@@ -55,15 +59,38 @@ int main(int argc, char *argv[]) {
    fclose(fp);//and since we count from 0 we can use that as a part of an array index(of by one error go brrrrrrrrrrrrrrrrr)
    parse(board_state);
    //JSON is parsed correctly, time for the minimax algorithm
-   int result = minimax(symbols, turn(symbols), move_count);
-   printf("Minimax result: %d\n", result);
+switch (argv[1][1]) {
+    case 'e':
+        if (strcmp(argv[1], "-e") == 0) {
+            
+            int8_t score = minimax(symbols, turn(symbols), moves_count);
+            if(score==0){printf("Forced draw\n");}else{
+                printf("Mate in: %d for %c\n ", 10-abs(score), score > 0 ? 'X' : 'O');
+            }
+            return 0;
+            break;
+        }
+        
+    case 'm':
+        if (strcmp(argv[1], "-m") == 0) {
+            int move = next_move(symbols, turn(symbols));
+            printf("Best move on tile : %d\n", move);
+            return 0;
+            break;
+        }
+        
+    default:
+        fprintf(stderr, "Unknown argument: %s\n", argv[1]);
+        return 1;
+}
    output(symbols, start);
    return 0;
 }
  void parse(char *board_state) {
     cJSON *json = cJSON_Parse(board_state);
     if (!json) {
-        fprintf(stderr, "Error parsing JSON\n");
+        printf("Error parsing JSON\n");
+        perror("cJSON_Parse");
         return;
     }
     for (int i = 0; i < 9; i++) {
@@ -84,49 +111,32 @@ int main(int argc, char *argv[]) {
 
 int minimax(char *parsed_board_state, bool current_player, int depth) {//this is a minimax algorithm in c and can evaluate the board 
                                                                         //(how many moves are left till the game ends)
-   //terminal-state check
-   
-   if(is_terminal(parsed_board_state)){
-    switch(winner)
-    {
-    case 'X':
-        return 10-depth;
-        break;
-    case 'O':
-        return depth-10;
-        break;
-    case '_':
-        return 0;
-        break;
-        }  
-    }
-    switch (current_player) {
-        case true: {
-            int best_move = -11;
-            for (int i = 0; i < 9; i++) {
-                if (parsed_board_state[i] == '_') {
-                    parsed_board_state[i] = 'X';
-                    int score = minimax(parsed_board_state, false, depth + 1);//nesting hurts my eyes
-                    parsed_board_state[i] = '_'; 
-                    best_move = (score > best_move) ? score : best_move;
-                }
-            }
-            return best_move;
-        }
-        case false: {
-            
-            int best_move = 11;
-            for (int i = 0; i < 9; i++) {
-                if (parsed_board_state[i] == '_') {
-                    parsed_board_state[i] = 'O';
-                    int score = minimax(parsed_board_state, true, depth + 1);
-                    parsed_board_state[i] = '_';
-                    best_move = (score < best_move) ? score : best_move;
-                }
-            }
-            return best_move;
+    //terminal-state check
+    if (is_terminal(parsed_board_state)) {
+        if (winner == 'X') {
+            return 10 - depth;
+        } else if (winner == 'O') {
+            return depth - 10;
+        } else if (winner == '_') {
+            return 0;
         }
     }
+    if (invalid_board) {
+        return -11;//impossible to get when evaluating, so ill use this when getting an error
+    }
+
+    
+        int best_move = current_player ? -11 : 11;
+        for (int i = 0; i < 9; i++) {
+            if (parsed_board_state[i] == '_') {
+                parsed_board_state[i] = current_player ? 'X' : 'O';
+                int score = minimax(parsed_board_state, !current_player, depth + 1);
+                parsed_board_state[i] = '_';
+                best_move = (current_player) ? max(best_move, score) : min(best_move, score);
+            }
+        }
+        return best_move;
+
 }
 bool is_terminal(char *parsed_board_state) {//subfunc of minimax
     static const uint8_t winning_pos[8][3] = {
@@ -166,12 +176,34 @@ bool turn(char *parsed_board_state) {//subfunc of minimax
             default:
             break;
         }
+        moves_count=x_count+o_count;
 
     }
-    move_count = x_count + o_count;
-    if (x_count > o_count) {//yes here would be a good place to put a check if the board is valid but whatever ill do it later
+    switch(x_count-o_count){
+        case 1:
         return false;
-    } else {
+        case 0:
         return true;
+        default:
+        invalid_board = true;
+        return false;
+
+
     }
+}
+int next_move(char *parsed_board_state, bool current_player) {
+    int best_move = -1;
+    int best_score = current_player ? -11 : 11;
+    for(int i=0; i<9; i++){
+        if (parsed_board_state[i] == '_') {
+            parsed_board_state[i] = current_player ? 'X' : 'O';
+            int score = minimax(parsed_board_state, !current_player, 0);
+            parsed_board_state[i] = '_';
+            if ((current_player && score > best_score) || (!current_player && score < best_score)) {//yes i know nesting ill fix it later
+                best_score = score;
+                best_move = i;
+            }
+        }
+    }
+    return best_move;
 }
