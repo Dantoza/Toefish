@@ -6,9 +6,10 @@
 #include <stdbool.h>
 #include <time.h>
 #include <errno.h>
+#include <stdint.h>
 char board_state[MB1] = "";
 char winner = ' ';//declares if x wins,o wins or its a draw(_)
-int move_count = 0;
+uint8_t move_count = 0;//uses 8 bits to store the move count instead of default 32 bits
 char symbols[9]; //data in tiles
 bool is_terminal(char *parsed_board_state);//checks if the game is finished
 char *minimax(char *parsed_board_state, char current_player, int depth);//minimax algorithm
@@ -36,34 +37,23 @@ int main(int argc, char *argv[]) {
       perror("fopen");
       return 1;
    }
-// to prevent buffer overflows i capped it at 1 MB, the board state shouldnt be bigger than like 200B so yeah
-   char *buffer = malloc(MB1);
-   if (!buffer) {
-      perror("malloc");
-      fclose(fp);
-      return 1;
-   }
    fseek(fp, 0, SEEK_END);
    size_t size_in_bytes = ftell(fp);
    rewind(fp);
    if(size_in_bytes > MB1) {//check for file size
       fprintf(stderr, "Maximum file size is 1 MB\n");
-      free(buffer);
       fclose(fp);
       return 1;
    }
-   size_t read_size = fread(buffer, 1, MB1, fp);
+   size_t read_size = fread(board_state, 1, MB1, fp);
    if (read_size == 0 && ferror(fp)) {
       perror("fread");
-      free(buffer);
       fclose(fp);
       return 1;
    }
-   buffer[read_size] = '\0';// cuz counting starts at 0, i dont need to add read_size+1(off by one errors go brrrrrrrrrrrrrrrrrr)
-   strcpy(board_state, buffer);
-   free(buffer);
+   board_state[read_size] = '\0';//null-terminate the string, read_size is the size of the string
+   fclose(fp);//and since we count from 0 we can use that as a part of an array index(of by one error go brrrrrrrrrrrrrrrrr)
    parse(board_state);
-   fclose(fp);
    //JSON is parsed correctly, time for the minimax algorithm
    char *result = minimax(symbols, turn(symbols), move_count);
    printf("Minimax result: %s\n", result);
@@ -99,17 +89,20 @@ char *minimax(char *parsed_board_state, char current_player, int depth) {
     switch(winner)
     {
     case 'X':
+        return "X";
         break;
     case 'O':
+        return "O"; 
         break;
     case '_':
+        return "_";
         break;
     }
 
 }
 }
 bool is_terminal(char *parsed_board_state) {
-    static const int winning_pos[8][3] = {
+    static const uint8_t winning_pos[8][3] = {
         {0, 1, 2}, {3, 4, 5}, {6, 7, 8},//rows
         {0, 3, 6}, {1, 4, 7}, {2, 5, 8},//columns
         {0, 4, 8}, {2, 4, 6} //diagonals
