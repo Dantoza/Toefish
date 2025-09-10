@@ -66,7 +66,7 @@ which is the equivalent to:
 To compile toefish, you need to install the [cJSON](https://github.com/DaveGamble/cJSON), since the code needs to parse the JSON.
 
 ### Installing cJSON
-For better explanation of how to install the library, please reffer to the [cJSON](https://github.com/DaveGamble/cJSON) repo
+For better explanation of how to install the library, please reffer to the [cJSON](https://github.com/DaveGamble/cJSON) repo.
 For installing on Windows, you can use CMake,for Linux you can use either CMake or, if supported, install it from your package manager:
 #### Debian/Ubuntu-based systems
 
