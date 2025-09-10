@@ -12,20 +12,29 @@ It can look at a board state and tell you the result or the best move.
 ```bash
 git clone https://github.com/Dantoza/Toefish.git
 cd Toefish
-gcc -o toefish toefish.c
+gcc -o toefish toefish.c -lcjson
 ```
 
 ### Run
 
 ```bash
-./toefish
+./toefish <args> <file path>
 ```
+#### Arguments/flags are:
+* -e
+* -m
+---
+## Instructions
+### There are 2 modes of how toefish can run:
+1. _Evaluate mode:_ finds the fastest way to "mate" and tells you if the game is a forced draw(-e argument/flag when running the program)
 
-*(You can pass a board file — check the code for details.)*
+
+2. _Play mode:_ finds the best next move( -m argument/flag when running the program)
+
 
 ---
 
-## Example
+## Board JSON example
 
 ```json
 {
@@ -40,12 +49,14 @@ gcc -o toefish toefish.c
 "8": "_"
 }
 ```
-
-Running Toefish on this might say:  
+which is the equivalent to: 
+``` 
+ 0 | 1 | 2
+---+---+---
+ 3 | 4 | 5 
+---+---+---
+ 6 | 7 | 8
 ```
-Best move: (A,B)
-```
-
 ---
 
 ## License

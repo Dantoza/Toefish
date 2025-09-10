@@ -4,7 +4,6 @@
 #include <stdlib.h>//standard C library(functions like malloc, free, printf,...)
 #include <string.h>//string manipulation
 #include <stdbool.h>//boolean type
-#include <time.h>//time manipulation
 #include <errno.h>//error handling
 #include <stdint.h>//fixed width integers for smaller memory footprint
 #define max(a, b) ((a) > (b) ? (a) : (b))
@@ -19,19 +18,8 @@ int minimax(char *parsed_board_state, bool current_player, int depth);//minimax 
 void parse(char *board_state);//turns a json into an array
 bool turn(char *parsed_board_state);//checks whose turn it is and the current move number
 int next_move(char *parsed_board_state, bool current_player);
-
-void output(char *symbols, clock_t start){
-
-   for (int i = 0; i < 9; i++) {
-       printf("%d : %c ",i, symbols[i]);
-   }
-   printf("\n");
-   clock_t end = clock();
-   double cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC*1000;
-   printf("Execution time: %f milliseconds\n", cpu_time_used);
-}
 int main(int argc, char *argv[]) {
-   clock_t start = clock();
+   
    if (argc != 3) {
       fprintf(stderr, "Usage: %s <args> <file_path>\n", argv[0]);
       return 1;
@@ -83,7 +71,6 @@ switch (argv[1][1]) {
         fprintf(stderr, "Unknown argument: %s\n", argv[1]);
         return 1;
 }
-   output(symbols, start);
    return 0;
 }
  void parse(char *board_state) {
