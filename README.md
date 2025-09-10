@@ -24,12 +24,10 @@ gcc -o toefish toefish.c -lcjson
 * -e
 * -m
 ---
----
 ## How it works
 Toefish uses the minimax algorithm to find the best possible move assuming that two perfect players are playing.
 Since tic-tac-toe is a solved game, instead giving a score like stockfish, toefish can predict every move untill the end of the game,
 always finding the fastest mate for any player if its possible
----  
 ## Instructions
 ### There are 2 modes of how toefish can run:
 1. _Evaluate mode:_ finds the fastest way to "mate" and tells you if the game is a forced draw(-e argument/flag when running the program)
