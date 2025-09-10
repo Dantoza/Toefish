@@ -66,7 +66,7 @@ which is the equivalent to:
 To compile toefish, you need to install the [cJSON](https://github.com/DaveGamble/cJSON), since the code needs to parse the JSON.
 
 ### Installing cJSON
-For better explanation of how to install the library, please reffer to the [cJSON](https://github.com/DaveGamble/cJSON) repo.
+For better explanation of how to install the library, please reffer to the [cJSON](https://github.com/DaveGamble/cJSON) repo.  
 For installing on Windows, you can use CMake,for Linux you can use either CMake or, if supported, install it from your package manager:
 #### Debian/Ubuntu-based systems
 
@@ -108,7 +108,7 @@ sudo make install
 - Implement alpha-beta pruning to optimize the code
 - Add an addittional option to output the next-move board state into a new file for easier implementation with GUI-s
 - Improve the JSON format or switch the format entirely for something better used for smaller amounts of data(possibly removing the dependency on cJSON)
-- publishing the program to Linux and Windows repositories such as [https://scoop.sh/](scoop.sh) , apt, AUR,...
+- publishing the program to Linux and Windows repositories such as [scoop.sh](https://scoop.sh/) , apt, AUR,...
 ## License
 
 This project is under the GPL-3.0 License.  
