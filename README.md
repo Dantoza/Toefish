@@ -108,7 +108,7 @@ sudo make install
 - Implement alpha-beta pruning to optimize the code
 - Add an addittional option to output the next-move board state into a new file for easier implementation with GUI-s
 - Improve the JSON format or switch the format entirely for something better used for smaller amounts of data(possibly removing the dependency on cJSON)
-- publishing the program to Linux and Windows repositories such as scoop.sh , apt, AUR,...
+- publishing the program to Linux and Windows repositories such as [scoop.sh](scoop.sh) , apt, AUR,...
 ## License
 
 This project is under the GPL-3.0 License.  
