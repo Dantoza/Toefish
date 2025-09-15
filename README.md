@@ -21,9 +21,11 @@ gcc -o toefish toefish.c -lcjson
 ./toefish <args> <file path>
 ```
 #### Arguments/flags are:
-* -e
-* -m
+* -e    Evaluate mode: finds the fastest way to "mate" and tells you if the game is a forced draw.
+* -m    Move mode: finds and returns the best next move.
+
 ---
+
 ## How it works
 Toefish uses the minimax algorithm to find the best possible move assuming that two perfect players are playing.
 Since tic-tac-toe is a solved game, instead giving a score like stockfish, toefish can predict every move untill the end of the game,
@@ -38,7 +40,7 @@ always finding the fastest mate for any player if its possible
 
 ---
 
-## Board JSON example
+## Board JSON example (DEPRECATED)
 
 ```json
 {
@@ -63,6 +65,10 @@ which is the equivalent to:
 ```
 ---
 ## Dependencies
+
+> [!IMPORTANT]
+> JSON board state is deprecated and getting replaced by [danilo napis kle notr kako se ta tvoj fancy format imenuje]
+
 To compile toefish, you need to install the [cJSON](https://github.com/DaveGamble/cJSON), since the code needs to parse the JSON.
 
 ### Installing cJSON
@@ -106,9 +112,9 @@ sudo make install
 ---
 ## Future goals
 - Implement alpha-beta pruning to optimize the code
-- Add an addittional option to output the next-move board state into a new file for easier implementation with GUI-s
+- Add an addittional option to output the next-move board state into a new file for easier implementation with GUIs
 - Improve the JSON format or switch the format entirely for something better used for smaller amounts of data(possibly removing the dependency on cJSON)
-- publishing the program to Linux and Windows repositories such as [scoop.sh](https://scoop.sh/) , apt, AUR,...
+- publishing the program to Linux and Windows repositories such as [scoop.sh](https://scoop.sh/) , [Debian archive](https://deb.debian.org/debian/), AUR,...
 ## License
 
 This project is under the GPL-3.0 License.  
