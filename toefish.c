@@ -1,6 +1,8 @@
-#define MB1 1024*1024//cuz i cant put 1MB 
+
+#define X 0b01
+#define O 0b10
+#define EMPTY 0b00
 #include <stdio.h>//standard input output
-#include <cjson/cJSON.h>//cJSON library for manipulating JSONs
 #include <stdlib.h>//standard C library(functions like malloc, free, printf,...)
 #include <string.h>//string manipulation
 #include <stdbool.h>//boolean type
@@ -8,189 +10,140 @@
 #include <stdint.h>//fixed width integers for smaller memory footprint
 #define max(a, b) ((a) > (b) ? (a) : (b))
 #define min(a, b) ((a) < (b) ? (a) : (b))//copied from stackoverflow
-char board_state[MB1] = "";
 uint8_t moves_count;
-char winner = ' ';//declares if x wins,o wins or its a draw(_)
-bool invalid_board = false;//self-explanatory
-char symbols[9]; //data in tiles
-bool is_terminal(char *parsed_board_state);//checks if the game is finished
-int minimax(char *parsed_board_state, bool current_player, int depth);//minimax algorithm
-void parse(char *board_state);//turns a json into an array
-bool turn(char *parsed_board_state);//checks whose turn it is and the current move number
-int next_move(char *parsed_board_state, bool current_player);
+uint8_t winner;
+bool invalid_board = false;
+uint32_t board_id = 0;//board state encoded in a base-10 integer
+int8_t is_terminal(uint32_t board_id);//checks if the game is over
+uint32_t inverse(uint32_t board_id);
+uint8_t getcell(int8_t cell);
+void setcell(int8_t cell, uint8_t value);
+uint8_t minimax(uint32_t board_id, uint8_t player, uint8_t depth);
 int main(int argc, char *argv[]) {
-   
-   if (argc != 3) {
-      fprintf(stderr, "Usage: %s <args> <file_path>\n", argv[0]);
-      return 1;
-   }
-   FILE *fp = fopen(argv[2], "rb");//apparently rb and r work the same on linux but not on windows and rb is safer for cross-platform
-   if (!fp) {
-      perror("fopen");
-      return 1;
-   }
-   fseek(fp, 0, SEEK_END);
-   size_t size_in_bytes = ftell(fp);
-   rewind(fp);
-   if(size_in_bytes > MB1) {//check for file size
-      fprintf(stderr, "Maximum file size is 1 MB\n");
-      fclose(fp);
-      return 1;
-   }
-   size_t read_size = fread(board_state, 1, MB1, fp);
-   if (read_size == 0 || ferror(fp)) {
-      perror("fread");
-      fclose(fp);
-      return 1;
-   }
-   board_state[read_size] = '\0';//null-terminate the string, read_size is the size of the string
-   fclose(fp);//and since we count from 0 we can use that as a part of an array index(of by one error go brrrrrrrrrrrrrrrrr)
-   parse(board_state);
-   //JSON is parsed correctly, time for the minimax algorithm
-switch (argv[1][1]) {
-    case 'e':
-        if (strcmp(argv[1], "-e") == 0) {
-            
-            int8_t score = minimax(symbols, turn(symbols), moves_count);
-            if(score==0){printf("Forced draw\n");}else{
-                printf("Mate in: %d for %c\n ", 10-abs(score), score > 0 ? 'X' : 'O');
-            }
-            return 0;
-            break;
-        }
-        
-    case 'm':
-        if (strcmp(argv[1], "-m") == 0) {
-            int move = next_move(symbols, turn(symbols));
-            printf("Best move on tile : %d\n", move);
-            return 0;
-            break;
-        }
-        
-    default:
-        fprintf(stderr, "Unknown argument: %s\n", argv[1]);
-        return 1;
-}
-   return 0;
-}
- void parse(char *board_state) {
-    cJSON *json = cJSON_Parse(board_state);
-    if (!json) {
-        printf("Error parsing JSON\n");
-        perror("cJSON_Parse");
-        return;
-    }
-    for (int i = 0; i < 9; i++) {
-        char key[2];
-        snprintf(key, sizeof(key), "%d", i);
-        cJSON *item = cJSON_GetObjectItemCaseSensitive(json, key);
-        if (cJSON_IsString(item) && (item->valuestring != NULL)) {
-           
-            symbols[i] = item->valuestring[0]; 
-        } else {
-            fprintf(stderr, "Error: Invalid JSON format at key %d, using fallback value (empty tile)\n", i);
-            symbols[i] = '_'; // fallback
-        }
-    }
-    cJSON_Delete(json);
-
-}
-
-int minimax(char *parsed_board_state, bool current_player, int depth) {//this is a minimax algorithm in c and can evaluate the board 
-                                                                        //(how many moves are left till the game ends)
-    //terminal-state check
-    if (is_terminal(parsed_board_state)) {
-        if (winner == 'X') {
-            return 10 - depth;
-        } else if (winner == 'O') {
-            return depth - 10;
-        } else if (winner == '_') {
-            return 0;
-        }
-    }
-    if (invalid_board) {
-        return -11;//impossible to get when evaluating, so ill use this when getting an error
-    }
-
     
-        int best_move = current_player ? -11 : 11;
-        for (int i = 0; i < 9; i++) {
-            if (parsed_board_state[i] == '_') {
-                parsed_board_state[i] = current_player ? 'X' : 'O';
-                int score = minimax(parsed_board_state, !current_player, depth + 1);
-                parsed_board_state[i] = '_';
-                best_move = (current_player) ? max(best_move, score) : min(best_move, score);
-            }
-        }
-        return best_move;
+   if (argc != 3) {
+      fprintf(stderr, "Usage: %s <args> <board>\n", argv[0]);
+      return 1;
+   }
+  
+   
+   char *board_end;
+   board_id = strtoul(argv[2], &board_end, 10);
+   if (errno == ERANGE) {
+       fprintf(stderr, "Overflow: Board state is out of range for a 32-bit unsigned integer.\n");
+       return 1;
+   }
+    if (*board_end != '\0') {
+        printf("Warning: Board state contains invalid characters, using board state up to that point: %u\n", board_id);
+    }
+    board_id=inverse(board_id);
+    
+   if (strcmp(argv[1], "-e") == 0) {
+
+   }
+
+   if (strcmp(argv[1], "-m") == 0) {
+
+   }
+   printf("%d\n",is_terminal(board_id));
 
 }
-bool is_terminal(char *parsed_board_state) {//subfunc of minimax
-    static const uint8_t winning_pos[8][3] = {
-        {0, 1, 2}, {3, 4, 5}, {6, 7, 8},//rows
-        {0, 3, 6}, {1, 4, 7}, {2, 5, 8},//columns
-        {0, 4, 8}, {2, 4, 6} //diagonals
-        //its easier to hardcode these than to calculate all possible winning positions, also faster for the program not just for me
-    };
-
-    for (size_t i = 0; i < 8; i++) {
-        char s = parsed_board_state[winning_pos[i][0]];
-        if (s != '_' &&
-            s == parsed_board_state[winning_pos[i][1]] &&
-            s == parsed_board_state[winning_pos[i][2]]) {
-            winner = s;
-            return true;
-        }
-    }
-
-    if (!strchr(parsed_board_state, '_')) {
-        winner='_';
-        return true;
-    }
-    return false;
+uint8_t getcell(int8_t cell){
+    return (board_id>>(cell*2))&0b11;
 }
-bool turn(char *parsed_board_state) {//subfunc of minimax
-    int x_count = 0;
-    int o_count = 0;
-    for (int i = 0; i < 9; i++) {
-        switch (parsed_board_state[i]) {
-            case 'X':
-            x_count++;
-            break;
-            case 'O':
-            o_count++;
-            break;
-            default:
-            break;
-        }
-        moves_count=x_count+o_count;
-
-    }
-    switch(x_count-o_count){
-        case 1:
-        return false;
-        case 0:
-        return true;
-        default:
-        invalid_board = true;
-        return false;
-
-
-    }
+void setcell(int8_t cell, uint8_t value){
+    board_id=board_id -(getcell(cell)<<(cell*2));//clears the cell
+    board_id=board_id +((value&0b11)<<(cell*2));// sets the new value
 }
-int next_move(char *parsed_board_state, bool current_player) {
-    int best_move = -1;
-    int best_score = current_player ? -11 : 11;
-    for(int i=0; i<9; i++){
-        if (parsed_board_state[i] == '_') {
-            parsed_board_state[i] = current_player ? 'X' : 'O';
-            int score = minimax(parsed_board_state, !current_player, 0);
-            parsed_board_state[i] = '_';
-            if ((current_player && score > best_score) || (!current_player && score < best_score)) {//yes i know nesting ill fix it later
-                best_score = score;
-                best_move = i;
-            }
+uint32_t inverse(uint32_t board_id){//basicaly turns for example 1001 into 0110-because we are reading the board id from the end to the start
+    uint32_t buffer=0b00;
+    for (int i=0; i<9;i++){
+        buffer=buffer<<2;
+        buffer=buffer+((board_id>>(i*2))&0b11);
+    }
+    return buffer;
+        
+
+}
+int8_t is_terminal(uint32_t board_id){
+    /*return values:
+    0: draw
+    1: X wins
+    2: O wins
+    3: game not finished
+    */
+    for (uint8_t i=0; i<9;i++) {
+        if(getcell(i)==EMPTY){//check for each cell if its empty, if it is it skips and instead of returning 0(draw) exits the loop and goes to check who won the game
+            goto who_won;
         }
     }
-    return best_move;
+  return 0;
+  who_won:
+    //rows
+    for (uint8_t i=0; i<3;i++){
+        if((getcell(i*3)==getcell(i*3+1))&&(getcell(i*3)==getcell(i*3+2))&& (getcell(i*3)!=EMPTY)){
+            return getcell(i*3);
+        }
+    }
+    //columns
+    for (uint8_t i=0; i<3;i++){
+        if((getcell(i)==getcell(i+3))&&(getcell(i)==getcell(i+6))&& (getcell(i)!=EMPTY)){
+            return getcell(i);
+        }
+    }
+   //diagonals
+    if((getcell(0)==getcell(4))&&(getcell(0)==getcell(8))&& (getcell(0)!=EMPTY)){
+        return getcell(0);
+    }
+    if((getcell(2)==getcell(4))&&(getcell(2)==getcell(6))&& (getcell(2)!=EMPTY)){
+        return getcell(2);
+    }
+    return 3;//game not finished
+
+}
+bool who_plays(){//checks if the board state is valid and whose move it is
+    uint8_t x_moves;
+    uint8_t o_moves;
+    for(uint8_t i=0;i<9;i++){
+        switch(getcell(i)){
+            case X:++x_moves; break;
+            case O:++o_moves;break;
+        }
+    }
+    moves_count=x_moves+o_moves;
+    return (o_moves) < (x_moves) ? (false) : (true);
+    
+}
+uint8_t minimax(uint32_t board_state,uint8_t player, uint8_t depth){
+    uint8_t player=who_plays();
+    uint8_t bestscore;
+    switch(player){
+        case X:
+        bestscore=-11;
+        break;
+        case O:
+        bestscore=11;
+        break;
+
+    }
+    switch (is_terminal(board_state))
+    {
+    case 0:
+        return 0;
+        break;
+    case 1:
+        return 10-depth;//the algorithm to win faster, so it wants to minimize the depth
+        break;
+    case 2:
+        return depth-10;//the algorithm to make the opponent lose slower, so it wants to maximize the depth
+        break;
+    case 3:
+        break;
+    }
+    for(uint8_t i=0; i<9;i++){
+        setcell(i,player);
+        
+        uint8_t score=minimax(board_id,player,moves_count);
+        setcell(i,EMPTY);
+    }
 }
