@@ -29,10 +29,9 @@ int main(int argc, char *argv[]) {
 
     //process the board state
     board_id=inverse(board_id);
-    debug_board(board_id); // Temporary debug output
     get_data(board_id);
     if(invalid_board){
-        printf("Error: Invalid board state %u.\n", board_id);
+        printf("Error: Invalid board state %u.\n", inverse(board_id));
         return 1;
     }
 
@@ -44,8 +43,11 @@ int main(int argc, char *argv[]) {
    if (strcmp(argv[1], "-m") == 0) {
 
    }
+
    printf("move count: %d\n",moves_count);
    printf("%d\n",minimax(board_id,player,0));
+   printf("board id: %u\n",board_id);
+   printf("mate in ");
  return 0;
 }
 
@@ -53,32 +55,6 @@ int main(int argc, char *argv[]) {
 
 
 
-void get_data(uint32_t board_id){//calculates important data from the board like the move counter, whose move it is, if the board state is invalid and so on
-uint8_t x_moves=0;
-uint8_t o_moves=0;
-for(int i=0;i<9;i++){
- switch(getcell(i)){
-    case X:
-    ++x_moves;//i heard this is faster than x_moves++ so idk prolly wont make a difference tbh
-    break;
-    case O:
-    ++o_moves;
-    break;
- }
-}
-moves_count=x_moves+o_moves;
-switch(x_moves-o_moves){
-    case 1:
-        player=false;
-        return;
-    case 0:
-        player=true;
-        return;
-    default:
-        invalid_board=true;
-        return;
-}
-}
 uint8_t getcell(int8_t cell){
     return (board_id>>(cell*2))&0b11;
 }
@@ -103,13 +79,6 @@ int8_t is_terminal(uint32_t board_id){
     2: O wins
     3: game not finished
     */
-    for (uint8_t i=0; i<9;i++) {
-        if(getcell(i)==EMPTY){//check for each cell if its empty, if it is it skips and instead of returning 0(draw) exits the loop and goes to check who won the game
-            goto who_won;
-        }
-    }
-  return 0;
-  who_won:
     //rows
     for (uint8_t i=0; i<3;i++){
         if((getcell(i*3)==getcell(i*3+1))&&(getcell(i*3)==getcell(i*3+2))&& (getcell(i*3)!=EMPTY)){
@@ -129,12 +98,51 @@ int8_t is_terminal(uint32_t board_id){
     if((getcell(2)==getcell(4))&&(getcell(2)==getcell(6))&& (getcell(2)!=EMPTY)){
         return getcell(2);
     }
-    return 3;//game not finished
+    // not draw
+    for(uint8_t i=0; i<9;i++){
+        if(getcell(i)==EMPTY){
+            return 3;
+        }
+    }
+    return 0;
 
 }
-
+void get_data(uint32_t board_id){
+    uint8_t x_counter=0;
+    uint8_t o_counter=0;
+    for(uint8_t i=0; i<9;i++){
+        switch(getcell(i)){
+            case X:
+                x_counter++;
+                break;
+            case O:
+                o_counter++;
+                break;
+            case EMPTY:
+                break;
+            default:
+                invalid_board=true;
+                return;
+        }
+    }
+    switch (x_counter-o_counter)
+    {
+    case 0:
+        player=true;//x plays
+        break;
+    case 1:
+        player=false;//o plays
+        break;
+    default:
+        invalid_board=true;
+        return;
+        break;
+    
+}
+moves_count=x_counter+o_counter;
+}
 int8_t minimax(uint32_t board_id,bool player, uint8_t depth){
-    int8_t bestscore;
+    int8_t bestscore=0;
 
     if (player) {
         bestscore = -11;
@@ -147,10 +155,10 @@ int8_t minimax(uint32_t board_id,bool player, uint8_t depth){
         return 0;
         break;
     case 1:
-        return depth + 1;//X wins in (depth+1) moves
+        return 10-depth;
         break;
     case 2:
-        return -(depth + 1);//O wins in (depth+1) moves
+     return depth-10;
         break;
     case 3:
         break;
@@ -172,26 +180,4 @@ int8_t minimax(uint32_t board_id,bool player, uint8_t depth){
         }
     }
     return bestscore;
-}
-
-// Add this temporary debug function to see what's in board state 335874
-void debug_board(uint32_t board_id) {
-    printf("Board state %u:\n", board_id);
-    uint8_t x_moves = 0, o_moves = 0;
-    
-    for(int i = 0; i < 9; i++) {
-        uint8_t cell = getcell(i);
-        printf("Cell %d: %d ", i, cell);
-        if(cell == X) {
-            printf("(X)\n");
-            x_moves++;
-        } else if(cell == O) {
-            printf("(O)\n");
-            o_moves++;
-        } else {
-            printf("(EMPTY)\n");
-        }
-    }
-    
-    printf("X moves: %d, O moves: %d, Difference: %d\n", x_moves, o_moves, x_moves - o_moves);
 }
