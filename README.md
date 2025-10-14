@@ -114,6 +114,7 @@ sudo make install
 - Implement alpha-beta pruning to optimize the code
 - Add an addittional option to output the next-move board state into a new file for easier implementation with GUIs
 - Improve the JSON format or switch the format entirely for something better used for smaller amounts of data(possibly removing the dependency on cJSON)
+- Add 4th board state to fully use the 2 bits in proprietary format (use?)
 - publishing the program to Linux and Windows repositories such as [scoop.sh](https://scoop.sh/) , [Debian archive](https://deb.debian.org/debian/), AUR,...
 ## License
 
