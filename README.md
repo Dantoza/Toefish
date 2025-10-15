@@ -3,7 +3,7 @@
 Toefish is a small Tic-Tac-Toe evaluation bot written in C.  
 It can look at a board state and tell you the result or the best move.
 
----
+--- skibidi
 
 ## Getting Started
 
